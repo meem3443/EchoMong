@@ -1,0 +1,21 @@
+# backend/sqlc.yaml
+version: "2"
+sql:
+- engine: "postgresql"
+
+  # 1. 'schema:' 항목을 삭제하고 'database:' 항목으로 교체합니다.
+  database:
+    # sqlc가 .env에서 읽어온 환경 변수를 사용하도록 설정합니다.
+    # 님이 사용 중인 DB_USER, DB_PASSWORD 등을 그대로 사용합니다.
+    uri: "postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
+
+  # 2. 쿼리 파일 경로는 동일합니다.
+  queries: "internal/repository/queries/"
+
+  # 3. Go 코드 생성 위치도 동일합니다.
+  gen:
+    go:
+      package: "db"
+      out: "internal/repository/db"
+      sql_package: "pgx/v5"
+      emit_json_tags: true

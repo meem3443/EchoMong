@@ -1,0 +1,12 @@
+# backend/codegen.config.yaml
+
+# 1. 생성될 Go 코드의 패키지 이름
+package: api
+
+# 2. 어떤 종류의 코드를 생성할지
+generate:
+- types # OpenAPI 스키마 (Echomong, Marker 등)
+- chi-server # Chi 라우터용 서버 인터페이스 (가장 인기)
+
+# 3. 생성된 Go 코드를 저장할 위치
+output: internal/api/api.gen.go
