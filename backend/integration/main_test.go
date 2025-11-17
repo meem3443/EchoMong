@@ -6,7 +6,7 @@ import (
 	"backend/internal/service"
 	"context"
 	"fmt"
-	"log"
+	"log" // ⬅️ log.Printf를 위해 필요
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -15,19 +15,20 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/joho/godotenv"
+	"github.com/joho/godotenv" // ⬅️ 1. godotenv import 다시 추가
 )
 
-// setupTestServer는 main.go의 main 함수와 거의 동일하게
-// 실제 DB 연결과 Gin 라우터를 설정합니다.
-func setupTestServer(t *testing.T) (http.Handler, *pgxpool.Pool) {
-	// .env 파일 로드 (테스트 실행 위치 기준)
+// setupTestServer는 실제 DB 연결과 Gin 라우터를 설정합니다.
+func setupTestServer(_ *testing.T) (http.Handler, *pgxpool.Pool) {
+
+	// ⬅️ 2. .env 파일 로드 코드 다시 추가
+	// 'Run Test' 버튼을 위해 integration 폴더 기준 상위 .env 로드
 	err := godotenv.Load("../.env")
 	if err != nil {
-		log.Fatalf(".env 파일을 로드하지 못했습니다: %v", err)
+		log.Printf("테스트: .env 파일 로드 실패 (make test로 실행 시 정상): %v", err)
 	}
 
-	// DB 연결 문자열 생성
+	// DB 연결 문자열 생성 (Makefile 또는 godotenv를 통해 환경변수 주입됨)
 	dbUser := os.Getenv("DB_USER")
 	dbPass := os.Getenv("DB_PASSWORD")
 	dbHost := os.Getenv("DB_HOST")
@@ -41,6 +42,7 @@ func setupTestServer(t *testing.T) (http.Handler, *pgxpool.Pool) {
 	// DB 풀 생성
 	dbpool, err := pgxpool.New(context.Background(), dbUrl)
 	if err != nil {
+		// 여기서 Fatalf를 사용해야 DB 연결 실패 시 테스트가 즉시 중단됨
 		log.Fatalf("DB 연결 실패: %v\n", err)
 	}
 
