@@ -1,0 +1,39 @@
+openapi: 3.0.3
+info:
+  title: Echomong API
+  version: 1.0.0
+paths:
+  /echomong/{id}:
+    get:
+      operationId: GetEchomong
+      summary: Echomong 1개 조회
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Echomong"
+        '404':
+          description: Echomong을 찾을 수 없음
+
+components:
+  schemas:
+    # 3단계에서 sqlc가 만들 모델과 일치시키면 편합니다.
+    Echomong:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        lyrics:
+          type: string
+        img_url:
+          type: string

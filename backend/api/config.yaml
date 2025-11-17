@@ -1,0 +1,8 @@
+package: handler # 생성될 Go 패키지 이름
+generate:
+- gin-server # Gin 서버 코드
+- strict-server # 타입-세이프한 인터페이스 (강력 추천)
+- models # 요청/응답 모델
+- embedded-spec # 스펙을 Go 코드에 내장 (7단계 미들웨어용)
+# ★ 코드가 생성될 위치
+output: "internal/handler/api.gen.go"

@@ -1,75 +1,66 @@
-// backend/main.go
 package main
 
 import (
+	"backend/internal/handler"       // 6단계 핸들러
+	"backend/internal/repository/db" // 3단계 레포지토리
+	"backend/internal/service"       // 5단계 서비스
 	"context"
-	"fmt"
+	"fmt" // 1. fmt 임포트 (문자열 조합용)
 	"log"
 	"net/http"
-	"os"
+	"os" // 2. os 임포트 (환경 변수 읽기용)
 
-	"github.com/go-chi/chi/v5"            // Chi 라우터
-	"github.com/go-chi/chi/v5/middleware" // Chi 미들웨어
-	"github.com/jackc/pgx/v5/pgxpool"     // PGX DB 풀
-	"github.com/joho/godotenv"            // .env 파일 로더
-
-	// --- 우리가 만든 계층들 ---
-	"github.com/meem3443/EchoMong/backend/internal/api"           // 1. (gen-api) OpenAPI 코드
-	"github.com/meem3443/EchoMong/backend/internal/handler"       // 3. 핸들러
-	"github.com/meem3443/EchoMong/backend/internal/repository/db" // 2. (gen-db) Repository 코드
-	"github.com/meem3443/EchoMong/backend/internal/service"       // 2. 서비스
+	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/joho/godotenv" // 3. godotenv 임포트
+	ginmiddleware "github.com/oapi-codegen/gin-middleware"
 )
 
 func main() {
-	// 1. .env 파일 로드
-	if err := godotenv.Load(); err != nil {
-		log.Println(" 경고: .env 파일을 찾을 수 없습니다.")
+	// --- 1. .env 파일 로드 ---
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatalf(".env 파일을 로드하지 못했습니다: %v", err)
 	}
 
-	// 2. DB 연결 (Repository 준비)
-	dbURL := os.Getenv("DATABASE_URL") // Makefile의 migrate와 동일한 변수 사용 권장
-	if dbURL == "" {
-		// sqlc.yaml과 동일하게 .env 변수로 조합
-		dbURL = fmt.Sprintf("postgres://%s:%s@%s:%s/%s",
-			os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"), os.Getenv("DB_HOST"), os.Getenv("DB_PORT"), os.Getenv("DB_NAME"))
-	}
+	// --- 2. 환경 변수를 읽어 DB 연결 문자열 생성 ---
+	dbUser := os.Getenv("DB_USER")
+	dbPass := os.Getenv("DB_PASSWORD")
+	dbHost := os.Getenv("DB_HOST")
+	dbPort := os.Getenv("DB_PORT")
+	dbName := os.Getenv("DB_NAME")
 
-	dbpool, err := pgxpool.New(context.Background(), dbURL)
+	// postgres://echomong_app:hot1234!@localhost:5432/echomongDB
+	dbUrl := fmt.Sprintf("postgres://%s:%s@%s:%s/%s",
+		dbUser, dbPass, dbHost, dbPort, dbName,
+	)
+
+	// --- 3. DB 연결 ---
+	dbpool, err := pgxpool.New(context.Background(), dbUrl)
 	if err != nil {
 		log.Fatalf("DB 연결 실패: %v\n", err)
 	}
 	defer dbpool.Close()
-	log.Println("✅ DB 연결 성공!")
 
-	// --- 3. 의존성 주입 (계층 조립) ---
+	// --- 4. 의존성 주입 (부품 조립) ---
+	queries := db.New(dbpool)
+	echomongService := service.NewEchomongService(queries)
+	apiHandler := handler.NewApiHandler(echomongService)
 
-	// Repository (sqlc가 생성한 코드로 만듦)
-	repository := db.New(dbpool)
+	strictHandler := handler.NewStrictHandler(apiHandler, nil)
 
-	// Service (Repository를 주입)
-	svc := service.NewService(repository)
+	// --- 5. Gin 라우터 설정 ---
+	router := gin.Default()
 
-	// Handler (Service를 주입)
-	h := handler.NewHandler(svc)
-
-	// --- 4. 라우터 설정 ---
-	r := chi.NewRouter()
-	r.Use(middleware.Logger) // 로그 미들웨어
-
-	// openapi.yaml의 base path (/api/v1)에 맞춰 그룹화
-	r.Group(func(r chi.Router) {
-		// oapi-codegen이 생성한 HandlerFromMux 함수로 핸들러를 라우터에 등록
-		api.HandlerFromMux(h, r)
-	})
-
-	// --- 5. 서버 시작 ---
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
+	spec, err := handler.GetSwagger()
+	if err != nil {
+		log.Fatalf("OpenAPI 스펙 로드 실패: %v", err)
 	}
+	router.Use(ginmiddleware.OapiRequestValidator(spec))
 
-	log.Printf("🚀 서버 실행 중... (http://localhost:%s)\n", port)
-	if err := http.ListenAndServe(":"+port, r); err != nil {
-		log.Fatalf("서버 시작 실패: %v\n", err)
-	}
+	handler.RegisterHandlers(router, strictHandler)
+
+	// --- 6. 서버 시작 ---
+	log.Println("🚀 서버 실행 중... http://localhost:8080")
+	http.ListenAndServe(":8080", router)
 }
