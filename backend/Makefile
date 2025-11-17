@@ -56,6 +56,14 @@ tidy:
 ## run: 서버 실행 (7단계)
 # 'run'은 'tidy'와 'gen'에 의존합니다.
 # 'make run'을 실행하면 'make tidy', 'make gen'이 먼저 실행됩니다.
+
+test: gen tidy
+	@echo "🧪 단위 테스트 실행 중..."
+	# '-v' 플래그로 상세한 결과를 봅니다.
+	# './...'는 현재 폴더 및 모든 하위 폴더의 테스트를 실행합니다.
+	@go test -v ./...
+	@echo "✅ 테스트 완료!"
+
 run: gen tidy
 	@echo "🚀 서버 실행 중... (http://localhost:8080)"
 	@go run ./main.go

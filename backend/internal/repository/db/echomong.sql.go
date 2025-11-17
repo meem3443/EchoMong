@@ -26,3 +26,33 @@ func (q *Queries) GetEchomong(ctx context.Context, id int64) (Echomong, error) {
 	)
 	return i, err
 }
+
+const getEchomongs = `-- name: GetEchomongs :many
+SELECT id, title, lyrics, img_url FROM echomong
+ORDER BY id
+`
+
+func (q *Queries) GetEchomongs(ctx context.Context) ([]Echomong, error) {
+	rows, err := q.db.Query(ctx, getEchomongs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Echomong
+	for rows.Next() {
+		var i Echomong
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Lyrics,
+			&i.ImgUrl,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

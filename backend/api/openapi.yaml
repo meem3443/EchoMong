@@ -2,11 +2,54 @@ openapi: 3.0.3
 info:
   title: Echomong API
   version: 1.0.0
+
 paths:
+  # --- 1. 회원가입/로그인 경로 추가 ---
+  /register:
+    post:
+      operationId: RegisterUser
+      summary: 회원가입
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserCredentials"
+      responses:
+        '201':
+          description: 생성 성공
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /login:
+    post:
+      operationId: LoginUser
+      summary: 로그인
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserCredentials"
+      responses:
+        '200':
+          description: 로그인 성공 (토큰 발급)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+
+  # --- 2. 기존 API에 'security' 추가 ---
   /echomong/{id}:
     get:
       operationId: GetEchomong
       summary: Echomong 1개 조회
+      security:
+      # ★ security 추가
+      - BearerAuth: []
       parameters:
       - name: id
         in: path
@@ -20,12 +63,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Echomong"
-        '404':
-          description: Echomong을 찾을 수 없음
 
 components:
   schemas:
-    # 3단계에서 sqlc가 만들 모델과 일치시키면 편합니다.
+    # --- 3. 기존 Echomong 스키마 ---
     Echomong:
       type: object
       properties:
@@ -37,3 +78,29 @@ components:
           type: string
         img_url:
           type: string
+          format: uri
+
+    # --- 4. User 관련 스키마 추가 ---
+    UserCredentials:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+      required: [ username, password ]
+    User:
+      # (비밀번호는 빼고 반환)
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+
+  # --- 5. 보안 방식(JWT) 정의 추가 ---
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

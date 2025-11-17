@@ -21,6 +21,10 @@ import (
 	strictgin "github.com/oapi-codegen/runtime/strictmiddleware/gin"
 )
 
+const (
+	BearerAuthScopes = "BearerAuth.Scopes"
+)
+
 // Echomong defines model for Echomong.
 type Echomong struct {
 	Id     *int    `json:"id,omitempty"`
@@ -29,11 +33,35 @@ type Echomong struct {
 	Title  *string `json:"title,omitempty"`
 }
 
+// User defines model for User.
+type User struct {
+	Id       *int    `json:"id,omitempty"`
+	Username *string `json:"username,omitempty"`
+}
+
+// UserCredentials defines model for UserCredentials.
+type UserCredentials struct {
+	Password string `json:"password"`
+	Username string `json:"username"`
+}
+
+// LoginUserJSONRequestBody defines body for LoginUser for application/json ContentType.
+type LoginUserJSONRequestBody = UserCredentials
+
+// RegisterUserJSONRequestBody defines body for RegisterUser for application/json ContentType.
+type RegisterUserJSONRequestBody = UserCredentials
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// Echomong 1개 조회
 	// (GET /echomong/{id})
 	GetEchomong(c *gin.Context, id int)
+	// 로그인
+	// (POST /login)
+	LoginUser(c *gin.Context)
+	// 회원가입
+	// (POST /register)
+	RegisterUser(c *gin.Context)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -59,6 +87,8 @@ func (siw *ServerInterfaceWrapper) GetEchomong(c *gin.Context) {
 		return
 	}
 
+	c.Set(BearerAuthScopes, []string{})
+
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
 		if c.IsAborted() {
@@ -67,6 +97,32 @@ func (siw *ServerInterfaceWrapper) GetEchomong(c *gin.Context) {
 	}
 
 	siw.Handler.GetEchomong(c, id)
+}
+
+// LoginUser operation middleware
+func (siw *ServerInterfaceWrapper) LoginUser(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.LoginUser(c)
+}
+
+// RegisterUser operation middleware
+func (siw *ServerInterfaceWrapper) RegisterUser(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.RegisterUser(c)
 }
 
 // GinServerOptions provides options for the Gin server.
@@ -97,6 +153,8 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	}
 
 	router.GET(options.BaseURL+"/echomong/:id", wrapper.GetEchomong)
+	router.POST(options.BaseURL+"/login", wrapper.LoginUser)
+	router.POST(options.BaseURL+"/register", wrapper.RegisterUser)
 }
 
 type GetEchomongRequestObject struct {
@@ -116,12 +174,40 @@ func (response GetEchomong200JSONResponse) VisitGetEchomongResponse(w http.Respo
 	return json.NewEncoder(w).Encode(response)
 }
 
-type GetEchomong404Response struct {
+type LoginUserRequestObject struct {
+	Body *LoginUserJSONRequestBody
 }
 
-func (response GetEchomong404Response) VisitGetEchomongResponse(w http.ResponseWriter) error {
-	w.WriteHeader(404)
-	return nil
+type LoginUserResponseObject interface {
+	VisitLoginUserResponse(w http.ResponseWriter) error
+}
+
+type LoginUser200JSONResponse struct {
+	Token *string `json:"token,omitempty"`
+}
+
+func (response LoginUser200JSONResponse) VisitLoginUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RegisterUserRequestObject struct {
+	Body *RegisterUserJSONRequestBody
+}
+
+type RegisterUserResponseObject interface {
+	VisitRegisterUserResponse(w http.ResponseWriter) error
+}
+
+type RegisterUser201JSONResponse User
+
+func (response RegisterUser201JSONResponse) VisitRegisterUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
 }
 
 // StrictServerInterface represents all server handlers.
@@ -129,6 +215,12 @@ type StrictServerInterface interface {
 	// Echomong 1개 조회
 	// (GET /echomong/{id})
 	GetEchomong(ctx context.Context, request GetEchomongRequestObject) (GetEchomongResponseObject, error)
+	// 로그인
+	// (POST /login)
+	LoginUser(ctx context.Context, request LoginUserRequestObject) (LoginUserResponseObject, error)
+	// 회원가입
+	// (POST /register)
+	RegisterUser(ctx context.Context, request RegisterUserRequestObject) (RegisterUserResponseObject, error)
 }
 
 type StrictHandlerFunc = strictgin.StrictGinHandlerFunc
@@ -170,16 +262,85 @@ func (sh *strictHandler) GetEchomong(ctx *gin.Context, id int) {
 	}
 }
 
+// LoginUser operation middleware
+func (sh *strictHandler) LoginUser(ctx *gin.Context) {
+	var request LoginUserRequestObject
+
+	var body LoginUserJSONRequestBody
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		ctx.Status(http.StatusBadRequest)
+		ctx.Error(err)
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.LoginUser(ctx, request.(LoginUserRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "LoginUser")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		ctx.Error(err)
+		ctx.Status(http.StatusInternalServerError)
+	} else if validResponse, ok := response.(LoginUserResponseObject); ok {
+		if err := validResponse.VisitLoginUserResponse(ctx.Writer); err != nil {
+			ctx.Error(err)
+		}
+	} else if response != nil {
+		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RegisterUser operation middleware
+func (sh *strictHandler) RegisterUser(ctx *gin.Context) {
+	var request RegisterUserRequestObject
+
+	var body RegisterUserJSONRequestBody
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		ctx.Status(http.StatusBadRequest)
+		ctx.Error(err)
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.RegisterUser(ctx, request.(RegisterUserRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RegisterUser")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		ctx.Error(err)
+		ctx.Status(http.StatusInternalServerError)
+	} else if validResponse, ok := response.(RegisterUserResponseObject); ok {
+		if err := validResponse.VisitRegisterUserResponse(ctx.Writer); err != nil {
+			ctx.Error(err)
+		}
+	} else if response != nil {
+		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/2yRP8/TQAzGv0pkGKMkL+873caAUDd2hNBxcVNXuT/cOUhVlK1CDOwgRAe+QRFi5QNV",
-	"4TsgX0opUpf45Md2Hv88gvE2eIeOE6gRktmg1fn5zGy89a6Td4g+YGTCrFArX94FBAXkGDuMMJVAtns9",
-	"xP5KTBzJdaL1u0gm3ZSYuMcbikhLxr/ZomGYJEVu7XPx0nWxWTx9sYIS3mFM5B0ouKuaqpH5PqDTgUDB",
-	"fdVU91BC0LzJXmo8d9cjtZNkOmQJsq5m8m7VgoLnyBca0h21RcaYQL0cgeRnMhFKcNpmJi2UEPHtQBFb",
-	"UBwHLM9ob5GbXkl1Ct6lBfCTppFgvGN02Y8OoSeTHdXbJPuNVwMfR1yDgkf1v2PW50vWF+OZXovJRAq8",
-	"IJr3308/fgqjh+ZBBv0v/22dD/tiPv7K4cPnYv70fj58zPdJg7U67q7PcHc6fi3mb8ffX6Rkmv4EAAD/",
-	"/+kcLAJiAgAA",
+	"H4sIAAAAAAAC/8SU32rUThTHX2U5v9+FQths7V3uWlGpeCH+wYtSZJqcZqduZsYzJ8qyBBSrIPTC69qK",
+	"fYMtIvaZttl3kJnZZlMbpGLBm02y5+TM93y+52QCqS6MVqjYQjIBmw6xEP72TjrUhVa5uzekDRJL9BGZ",
+	"uV8eG4QEpGLMkaCKQBb585JGLrijqRAMCZQkITrPtUxS5S51NCaZ2laZZYglj7AjUjVl9PYupuxyn1qk",
+	"q+srLZISxZ8Uv02YoWIpRvbyOUZY+1pT1tnG7w8jfFlKwgySzWVmtKy4dUlPFYHFtCTJ48fOpCBhHQUh",
+	"rZU8dE/b/unuOfv7z55AFCx1lUJ06caQ2UDlCku1o73OgL6xvrf2cAMieIVkpVaQwEp/0B+47rRBJYyE",
+	"BFb7g/6ql85DLynGxdvxRGaV+ydHdheHTrDUaiODBO4hNxPm3iZRICNZSDYnIN1hriJEECA6U9vYmEpc",
+	"9Ca63K62XLY1WtlA6tZg4C6pVozK6xHGjGTqFcW71vU3aRX8n3AHEvgvXi5IvNiOuBHu6WVoU5KGA6J6",
+	"72T27fsFv3xLbac2t5w8WxaFoHGb98psetirj6fzg31fIR7pXHphRtsOiA9c2C9BYIOW13U2vrZGf12B",
+	"qgrD+xdcL64Q6xeorrSPl0mfHR/OfpzWR6e9wLx3Y/7h6/zttHc2PZydfrwZPGggN+mBLGEuLS8+H51w",
+	"Hy0y/jXflWs9rnNm3x3Veye99ug22OYH+/XnT7Ppm/rLe6/vZwAAAP//qdPwjjMGAAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

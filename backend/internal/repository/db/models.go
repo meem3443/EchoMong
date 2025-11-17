@@ -14,3 +14,10 @@ type Echomong struct {
 	Lyrics pgtype.Text `json:"lyrics"`
 	ImgUrl pgtype.Text `json:"img_url"`
 }
+
+type User struct {
+	ID           int64              `json:"id"`
+	Username     string             `json:"username"`
+	PasswordHash string             `json:"password_hash"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+}

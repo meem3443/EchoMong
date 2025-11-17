@@ -9,11 +9,11 @@ import (
 
 // EchomongService는 DB 쿼리 객체를 가집니다.
 type EchomongService struct {
-	queries *db.Queries
+	queries db.Querier
 }
 
 // Service 생성자
-func NewEchomongService(queries *db.Queries) *EchomongService {
+func NewEchomongService(queries db.Querier) *EchomongService {
 	return &EchomongService{queries: queries}
 }
 
