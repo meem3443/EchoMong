@@ -1,23 +1,23 @@
+import React from 'react'
+
 export function Modal(props: {
   children?: React.ReactNode
   isOpen?: boolean
   onClose?: () => void
 }) {
-  if (!props.isOpen) {
-    return <></>
-  }
+  if (!props.isOpen) return null
 
   return (
     <div
-      className="absolute inset-0 bg-black/50 flex items-center justify-center z-10 overflow-hidden"
+      className="absolute inset-0 z-10 flex items-center justify-center bg-black/60 backdrop-blur-sm px-6 overflow-hidden"
       onClick={props.onClose}
     >
       <div
-        className="relative max-w-md w-full mx-4 bg-white rounded-lg shadow-lg"
+        className="relative w-full max-w-[340px] h-auto bg-white rounded-2xl shadow-2xl scrollbar-hide"
         onClick={(e) => e.stopPropagation()}
       >
         <button
-          className="absolute top-0 right-1 text-gray-600 text-2xl font-bold cursor-pointer hover:text-gray-800 z-20"
+          className="absolute top-3 right-4 text-gray-500 hover:text-gray-800 text-2xl font-bold z-20"
           onClick={props.onClose}
         >
           &times;

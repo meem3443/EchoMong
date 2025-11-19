@@ -1,22 +1,25 @@
-// pages/HomePage.tsx
 import { useState } from 'react'
+import type { MarkerData } from '@/mocks/mocks'
 import KakaoMap from '@/components/maps/KakaoMap'
 import CustomMarker from '@/components/maps/CustomMarker'
-import { echomongs, markers } from '@/mocks/marker'
+import { markers } from '@/mocks/mocks'
 import { Modal } from '@/components/Modal'
-import { EchomongModalContent } from '@/components/EchomongModalContent'
 
 export default function HomePage() {
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [selectedMarker, setSelectedMarker] = useState<MarkerData | null>(null)
 
-  function toggleModal() {
-    setIsModalOpen((prev) => !prev)
+  const handleMarkerClick = (marker: MarkerData) => {
+    setSelectedMarker(marker)
+  }
+
+  const closeModal = () => {
+    setSelectedMarker(null)
   }
 
   return (
-    <div className="relative w-full h-screen">
+    <div className="relative w-full h-full">
       <KakaoMap
-        level={5}
+        level={3}
         latitude={markers[0]?.lat}
         longitude={markers[0]?.lng}
       >
@@ -27,17 +30,18 @@ export default function HomePage() {
             longitude={marker.lng}
             imageUrl={marker.img}
             title={marker.title}
-            onClick={toggleModal}
+            onClick={() => handleMarkerClick(marker)}
           />
         ))}
       </KakaoMap>
-      <Modal isOpen={isModalOpen} onClose={toggleModal}>
-        <EchomongModalContent
-          lyrics={`${echomongs[0].lyrics}`}
-          imgSrc={echomongs[0].img}
-          backgroundSrc="background.png"
-          onClick={() => alert('팀이 확정되었습니다!')}
-        />
+
+      <Modal isOpen={!!selectedMarker} onClose={closeModal}>
+        {selectedMarker && (
+          <selectedMarker.modalComponent
+            {...selectedMarker.modalProps}
+            onClick={() => alert(`${selectedMarker.title} 팀 확정!`)}
+          />
+        )}
       </Modal>
     </div>
   )

@@ -5,24 +5,39 @@ export function EchomongModalContent(props: {
   onClick?: () => void
 }) {
   return (
-    <div className="relative w-full h-[70vh]">
-      <div className="flex absolute bg-white w-4/5 h-auto text-black items-center justify-center left-1/2 -translate-x-1/2 top-1/6 rounded-lg shadow-2xl ">
-        <span className="p-10 text-black  text-lg font-bold">
-          {props.lyrics}
-        </span>
+    <div className="relative w-full flex flex-col items-center overflow-hidden rounded-lg bg-white pb-6">
+      <div className="relative w-full h-64 sm:h-80">
+        <img
+          className="w-full h-full object-cover rounded-t-lg"
+          src={props.backgroundSrc}
+          alt="background"
+        />
+
+        <img
+          className="absolute w-32 h-32 left-1/2 -translate-x-1/2 -bottom-10 object-cover z-10 drop-shadow-lg"
+          src={props.imgSrc}
+          alt="character"
+        />
       </div>
-      <img className="w-full h-8/10 rounded-t-lg" src={props.backgroundSrc} />
-      <img
-        className="w-40 h-40 absolute left-1/2 -translate-x-1/2 bottom-1/4 object-cover "
-        src={props.imgSrc}
-      />
-      <div className="w-full h-5"></div>
-      <button
-        className="w-4/5 h-1/10 bg-blue-500 rounded-2xl text-2xl font-bold mx-auto block"
-        onClick={props.onClick}
-      >
-        팀 확정하기!
-      </button>
+
+      {/* 2. 텍스트 영역 (캐릭터 아래 여백 확보) */}
+      <div className="mt-12 px-6 text-center">
+        <div className="bg-gray-50/80 p-4 rounded-xl shadow-sm">
+          <span className="text-black text-lg font-bold break-keep">
+            {props.lyrics}
+          </span>
+        </div>
+      </div>
+
+      {/* 3. 버튼 영역 */}
+      <div className="w-full px-6 mt-6">
+        <button
+          className="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-2xl text-xl font-bold transition-colors shadow-md"
+          onClick={props.onClick}
+        >
+          팀 확정하기!
+        </button>
+      </div>
     </div>
   )
 }
