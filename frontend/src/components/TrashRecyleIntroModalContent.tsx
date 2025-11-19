@@ -136,9 +136,7 @@ export function TrashRecyleIntroModalContent() {
           </div>
 
           <p className="text-center text-gray-400 text-xs mt-3 break-keep">
-            {isRecycled
-              ? '재활용 성공! 새로운 자원으로 탄생했습니다.'
-              : '슬라이더를 끝까지 밀어 가공을 완료하세요.'}
+            {isRecycled ? '재활용 성공!' : '슬라이더를 끝까지 밀어주세요'}
           </p>
         </div>
       </div>
