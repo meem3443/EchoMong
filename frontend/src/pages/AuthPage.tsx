@@ -60,7 +60,7 @@ export function AuthPage() {
         setAuthToken(response.token)
         login({ token: response.token, username: data.username })
       }
-      navigate({ to: '/' })
+      navigate({ to: '/home' })
     } catch (error: any) {
       const message =
         error.response?.data?.message || '요청 처리에 실패했습니다.'

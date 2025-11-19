@@ -4,6 +4,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -53,18 +54,24 @@ func (s *UserService) LoginUser(ctx context.Context, email, password string) (st
 	// 이메일로 사용자 조회
 	user, err := s.queries.GetUserByEmail(ctx, email)
 	if err != nil {
+		// ▼▼▼ 에러 로그 출력 (여기서 무슨 에러인지 확인!) ▼▼▼
+		fmt.Printf("❌ DB 조회 에러: %v\n", err)
 		return "", errors.New("invalid credentials")
 	}
 
 	// 비밀번호 검증
 	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
 	if err != nil {
+		// ▼▼▼ 비밀번호 틀림 로그 ▼▼▼
+		fmt.Printf("❌ 비밀번호 불일치: %v\n", err)
 		return "", errors.New("invalid credentials")
 	}
 
-	// JWT 토큰 생성 (user.ID 대신 user.Email 사용)
+	// JWT 토큰 생성
 	token, err := s.generateJWT(user.Email, user.Username)
 	if err != nil {
+		// ▼▼▼ 토큰 생성 실패 로그 ▼▼▼
+		fmt.Printf("❌ JWT 생성 실패: %v\n", err)
 		return "", err
 	}
 
