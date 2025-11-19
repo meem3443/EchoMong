@@ -9,11 +9,11 @@ import (
 )
 
 type Querier interface {
-	// db/query/user.sql
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	// db/query/echomong.sql
 	GetEchomong(ctx context.Context, id int64) (Echomong, error)
 	GetEchomongs(ctx context.Context) ([]Echomong, error)
+	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByUsername(ctx context.Context, username string) (User, error)
 }
 

@@ -1,0 +1,11 @@
+> vite --port 3000
+
+Port 3000 is in use, trying another one...
+
+  VITE v7.2.2  ready in 687 ms
+
+  ➜  Local:   http://localhost:3001/
+  ➜  Network: use --host to expose
+  ➜  press h + enter to show help
+
+

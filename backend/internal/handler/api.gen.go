@@ -33,23 +33,44 @@ type Echomong struct {
 	Title  *string `json:"title,omitempty"`
 }
 
-// User defines model for User.
-type User struct {
-	Id       *int    `json:"id,omitempty"`
-	Username *string `json:"username,omitempty"`
+// ErrorResponse defines model for ErrorResponse.
+type ErrorResponse struct {
+	// Code 에러 코드 (optional)
+	Code *int `json:"code,omitempty"`
+
+	// Error 에러 메시지
+	Error string `json:"error"`
 }
 
-// UserCredentials defines model for UserCredentials.
-type UserCredentials struct {
+// LoginRequest defines model for LoginRequest.
+type LoginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+// LoginResponse defines model for LoginResponse.
+type LoginResponse struct {
+	Token string `json:"token"`
+}
+
+// RegisterRequest defines model for RegisterRequest.
+type RegisterRequest struct {
+	Email    string `json:"email"`
 	Password string `json:"password"`
 	Username string `json:"username"`
 }
 
+// User defines model for User.
+type User struct {
+	Email    *string `json:"email,omitempty"`
+	Username *string `json:"username,omitempty"`
+}
+
 // LoginUserJSONRequestBody defines body for LoginUser for application/json ContentType.
-type LoginUserJSONRequestBody = UserCredentials
+type LoginUserJSONRequestBody = LoginRequest
 
 // RegisterUserJSONRequestBody defines body for RegisterUser for application/json ContentType.
-type RegisterUserJSONRequestBody = UserCredentials
+type RegisterUserJSONRequestBody = RegisterRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -174,6 +195,15 @@ func (response GetEchomong200JSONResponse) VisitGetEchomongResponse(w http.Respo
 	return json.NewEncoder(w).Encode(response)
 }
 
+type GetEchomong404JSONResponse ErrorResponse
+
+func (response GetEchomong404JSONResponse) VisitGetEchomongResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type LoginUserRequestObject struct {
 	Body *LoginUserJSONRequestBody
 }
@@ -182,13 +212,29 @@ type LoginUserResponseObject interface {
 	VisitLoginUserResponse(w http.ResponseWriter) error
 }
 
-type LoginUser200JSONResponse struct {
-	Token *string `json:"token,omitempty"`
-}
+type LoginUser200JSONResponse LoginResponse
 
 func (response LoginUser200JSONResponse) VisitLoginUserResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type LoginUser401JSONResponse ErrorResponse
+
+func (response LoginUser401JSONResponse) VisitLoginUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type LoginUser500JSONResponse ErrorResponse
+
+func (response LoginUser500JSONResponse) VisitLoginUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
 
 	return json.NewEncoder(w).Encode(response)
 }
@@ -206,6 +252,33 @@ type RegisterUser201JSONResponse User
 func (response RegisterUser201JSONResponse) VisitRegisterUserResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RegisterUser400JSONResponse ErrorResponse
+
+func (response RegisterUser400JSONResponse) VisitRegisterUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RegisterUser409JSONResponse ErrorResponse
+
+func (response RegisterUser409JSONResponse) VisitRegisterUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RegisterUser500JSONResponse ErrorResponse
+
+func (response RegisterUser500JSONResponse) VisitRegisterUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
 
 	return json.NewEncoder(w).Encode(response)
 }
@@ -331,16 +404,21 @@ func (sh *strictHandler) RegisterUser(ctx *gin.Context) {
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
+	"AAD//530EpxRCwAA",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

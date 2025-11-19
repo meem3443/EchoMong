@@ -3,6 +3,8 @@ package handler
 import (
 	"backend/internal/service"
 	"context"
+	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -65,42 +67,83 @@ func (h *ApiHandler) GetEchomong(ctx context.Context, request GetEchomongRequest
 
 // --- User Handlers (수정됨) ---
 
+// internal/handler/handler.go
+
 func (h *ApiHandler) RegisterUser(ctx context.Context, request RegisterUserRequestObject) (RegisterUserResponseObject, error) {
+	user, err := h.userSvc.RegisterUser(
+		ctx,
+		string(request.Body.Email),
+		request.Body.Username,
+		request.Body.Password,
+	)
 
-	// ★ 1. 수정됨: *request.Body.Username -> request.Body.Username (포인터 아님)
-	// (openapi.yaml의 스키마가 'type: string'이므로 oapi-codegen이 포인터가 아닌 'string'으로 생성함)
-	user, err := h.userSvc.Register(ctx, request.Body.Username, request.Body.Password)
 	if err != nil {
-		return nil, gin.Error{
-			Err:  err,
-			Type: gin.ErrorTypePublic,
-			Meta: gin.H{"status": http.StatusBadRequest, "message": "Failed to register"},
+		// ★ 디버깅: 에러 타입 확인
+		fmt.Printf("Handler received error: %v\n", err)
+		fmt.Printf("Handler error type: %T\n", err)
+
+		var svcErr *service.ServiceError
+		if errors.As(err, &svcErr) {
+			fmt.Printf("ServiceError Code: %d\n", svcErr.Code)
+			fmt.Printf("ServiceError Message: %s\n", svcErr.Message)
+
+			errorMsg := svcErr.Message
+
+			switch svcErr.Code {
+			case 400:
+				fmt.Println("Returning 400 response")
+				return RegisterUser400JSONResponse{Error: errorMsg}, nil
+			case 409:
+				fmt.Println("Returning 409 response")
+				return RegisterUser409JSONResponse{Error: errorMsg}, nil
+			case 500:
+				fmt.Println("Returning 500 response (from switch)")
+				return RegisterUser500JSONResponse{Error: errorMsg}, nil
+			}
+		} else {
+			fmt.Println("Failed to convert to ServiceError")
 		}
+
+		fmt.Println("Returning 500 response (default)")
+		return RegisterUser500JSONResponse{Error: "서버 내부 오류"}, nil
 	}
 
-	// ★ 2. 수정됨: &user.ID -> apiIDPtr (int64 -> *int 변환)
-	// (sqlc는 'int64', oapi-codegen은 '*int'를 사용하므로 타입 변환 필요)
-	apiID := int(user.ID)
-	apiIDPtr := &apiID
-
-	apiUser := User{
-		Id:       apiIDPtr,
+	return RegisterUser201JSONResponse{
+		Email:    &user.Email,
 		Username: &user.Username,
-	}
-	return RegisterUser201JSONResponse(apiUser), nil
+	}, nil
 }
 
 func (h *ApiHandler) LoginUser(ctx context.Context, request LoginUserRequestObject) (LoginUserResponseObject, error) {
+	tokenString, err := h.userSvc.LoginUser(
+		ctx,
+		string(request.Body.Email),
+		request.Body.Password,
+	)
 
-	// ★ 3. 수정됨: *request.Body.Username -> request.Body.Username (포인터 아님)
-	tokenString, err := h.userSvc.Login(ctx, request.Body.Username, request.Body.Password)
 	if err != nil {
-		return nil, gin.Error{
-			Err:  err,
-			Type: gin.ErrorTypePublic,
-			Meta: gin.H{"status": http.StatusUnauthorized, "message": "Invalid credentials"},
+		var svcErr *service.ServiceError
+		if errors.As(err, &svcErr) {
+			errorMsg := svcErr.Message
+
+			switch svcErr.Code {
+			case 401:
+				return LoginUser401JSONResponse{
+					Error: errorMsg,
+				}, nil
+			case 500:
+				return LoginUser500JSONResponse{
+					Error: errorMsg,
+				}, nil
+			}
 		}
+
+		return LoginUser500JSONResponse{
+			Error: "서버 내부 오류",
+		}, nil
 	}
 
-	return LoginUser200JSONResponse{Token: &tokenString}, nil
+	return LoginUser200JSONResponse{
+		Token: tokenString,
+	}, nil
 }

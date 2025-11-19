@@ -16,7 +16,7 @@ type Echomong struct {
 }
 
 type User struct {
-	ID           int64              `json:"id"`
+	Email        string             `json:"email"`
 	Username     string             `json:"username"`
 	PasswordHash string             `json:"password_hash"`
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
