@@ -1,13 +1,12 @@
-// src/pages/AuthPage.tsx
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from '@tanstack/react-router'
 
 import type { AuthInput } from '@/schemas/auth'
-import { authSchema } from '@/schemas/auth'
+import { authSchema, loginSchema } from '@/schemas/auth'
 import { loginUser, registerUser, setAuthToken } from '@/api/auth'
-import useAuthStore from '@/store/useAuthStore'
+import useAuthStore from '@/stores/useAuthStore'
 
 export function AuthPage() {
   const [isLoginMode, setIsLoginMode] = useState(true)
@@ -21,7 +20,7 @@ export function AuthPage() {
     reset,
     formState: { errors, isSubmitting },
   } = useForm<AuthInput>({
-    resolver: zodResolver(authSchema),
+    resolver: zodResolver(isLoginMode ? loginSchema : authSchema) as any,
     defaultValues: {
       username: '',
       email: '',
@@ -39,7 +38,6 @@ export function AuthPage() {
     setApiError(null)
     try {
       if (isLoginMode) {
-        // 로그인: email과 password만 필요
         const response = await loginUser({
           email: data.email,
           password: data.password,
@@ -48,11 +46,9 @@ export function AuthPage() {
         login({ token: response.token, username: data.username })
         alert('로그인에 성공했습니다!')
       } else {
-        // 회원가입
         await registerUser(data)
         alert('회원가입에 성공했습니다! 자동으로 로그인합니다.')
 
-        // 회원가입 후 자동 로그인
         const response = await loginUser({
           email: data.email,
           password: data.password,
@@ -81,26 +77,28 @@ export function AuthPage() {
           {isLoginMode ? '로그인' : '회원가입'}
         </h2>
 
-        <div className="flex flex-col">
-          <label
-            htmlFor="username"
-            className="mb-1 text-sm font-medium text-black"
-          >
-            사용자 이름
-          </label>
-          <input
-            id="username"
-            type="text"
-            {...register('username')}
-            placeholder="사용자 이름을 입력하세요"
-            className="border p-2 rounded focus:ring-blue-500 focus:border-blue-500 text-black"
-          />
-          {errors.username && (
-            <p className="text-red-500 text-sm mt-1">
-              {errors.username.message}
-            </p>
-          )}
-        </div>
+        {!isLoginMode && (
+          <div className="flex flex-col">
+            <label
+              htmlFor="username"
+              className="mb-1 text-sm font-medium text-black"
+            >
+              사용자 이름
+            </label>
+            <input
+              id="username"
+              type="text"
+              {...register('username')}
+              placeholder="사용자 이름을 입력하세요"
+              className="border p-2 rounded focus:ring-blue-500 focus:border-blue-500 text-black"
+            />
+            {errors.username && (
+              <p className="text-red-500 text-sm mt-1">
+                {errors.username.message}
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="flex flex-col">
           <label
