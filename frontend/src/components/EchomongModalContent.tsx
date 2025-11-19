@@ -20,7 +20,6 @@ export function EchomongModalContent(props: {
         />
       </div>
 
-      {/* 2. 텍스트 영역 (캐릭터 아래 여백 확보) */}
       <div className="mt-12 px-6 text-center">
         <div className="bg-gray-50/80 p-4 rounded-xl shadow-sm">
           <span className="text-black text-lg font-bold break-keep">
@@ -29,7 +28,6 @@ export function EchomongModalContent(props: {
         </div>
       </div>
 
-      {/* 3. 버튼 영역 */}
       <div className="w-full px-6 mt-6">
         <button
           className="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-2xl text-xl font-bold transition-colors shadow-md"
