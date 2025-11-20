@@ -147,3 +147,33 @@ func (h *ApiHandler) LoginUser(ctx context.Context, request LoginUserRequestObje
 		Token: tokenString,
 	}, nil
 }
+
+func (h *ApiHandler) JoinTeam(ctx context.Context, request JoinTeamRequestObject) (JoinTeamResponseObject, error) {
+	// 1. Context에서 Email 추출 (미들웨어 설정에 따라 키값 확인: "email", "user_id", "sub" 등)
+	ginCtx, ok := ctx.(*gin.Context)
+	if !ok {
+		return JoinTeam500JSONResponse{Error: "Context Error"}, nil
+	}
+	email := ginCtx.GetString("email") // ★ 미들웨어에서 저장한 키값과 일치해야 함!
+
+	// 2. Service 호출
+	teamID, err := h.userSvc.JoinTeam(ctx, email, request.Body.Title)
+	if err != nil {
+		// ServiceError 타입 체크
+		var svcErr *service.ServiceError
+		if errors.As(err, &svcErr) {
+			if svcErr.Code == 404 {
+				return JoinTeam404JSONResponse{Error: svcErr.Message}, nil
+			}
+		}
+		return JoinTeam500JSONResponse{Error: "서버 내부 오류"}, nil
+	}
+
+	// 3. 성공 응답
+	msg := "팀 가입 성공"
+	tID := int(teamID)
+	return JoinTeam200JSONResponse{
+		Message: &msg,
+		TeamId:  &tID,
+	}, nil
+}
