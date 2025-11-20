@@ -12,6 +12,10 @@ export interface LoginResponse {
   token: string
 }
 
+export interface RegisterUserTeam {
+  title: string
+}
+
 /**
  * 회원가입 API 요청 함수
  * POST /register
@@ -46,9 +50,12 @@ export async function loginUser(
 export function setAuthToken(token: string | null) {
   if (token) {
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`
-    console.log('Authorization header set')
   } else {
     delete api.defaults.headers.common['Authorization']
-    console.log('Authorization header removed')
   }
+}
+
+export async function setUserTeam(title: string): Promise<RegisterUserTeam> {
+  const response = await api.post('/user/team', { title })
+  return response.data
 }
