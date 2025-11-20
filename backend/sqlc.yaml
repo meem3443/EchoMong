@@ -7,7 +7,6 @@ sql:
   - 'db/query/user.sql'
   gen:
     go:
-      # ★ 코드가 생성될 위치
       out: "internal/repository/db"
       package: "db"
       emit_json_tags: true
