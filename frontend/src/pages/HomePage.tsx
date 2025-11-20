@@ -1,5 +1,6 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
+import toast from 'react-hot-toast'
 import type { MarkerData } from '@/mocks/mocks'
 import KakaoMap from '@/components/maps/KakaoMap'
 import CustomMarker from '@/components/maps/CustomMarker'
@@ -7,12 +8,16 @@ import CustomMarker from '@/components/maps/CustomMarker'
 import { markers } from '@/mocks/mocks'
 import { Modal } from '@/components/Modal'
 import useAuthStore from '@/stores/useAuthStore'
+import { setUserTeam } from '@/api/auth'
 
 export default function HomePage() {
   const naviagte = useNavigate()
 
   const [selectedMarker, setSelectedMarker] = useState<MarkerData | null>(null)
-  const { teamRegister, isLoggedIn, logout } = useAuthStore()
+
+  const [isTeamModalOpen, setIsTeamModalOpen] = useState(false)
+
+  const { teamRegister, isLoggedIn, logout, user } = useAuthStore()
 
   if (!isLoggedIn) {
     logout()
@@ -21,6 +26,16 @@ export default function HomePage() {
 
   const handleMarkerClick = (marker: MarkerData) => {
     setSelectedMarker(marker)
+  }
+
+  const hanldeTeamRegister = async (teamName: string) => {
+    setUserTeam(teamName)
+      .then(() => {
+        teamRegister(teamName)
+        toast.success('팀 등록 완료~!')
+        closeModal()
+      })
+      .catch(() => toast.error('팀 등록에 실패했습니다.'))
   }
 
   const closeModal = () => {
@@ -33,6 +48,7 @@ export default function HomePage() {
         level={3}
         latitude={markers[0]?.lat}
         longitude={markers[0]?.lng}
+        useCurrentLocation={true}
       >
         {markers.map((marker) => (
           <CustomMarker
@@ -48,7 +64,7 @@ export default function HomePage() {
 
       <div className="absolute bottom-6 right-4 flex flex-col gap-3 z-40">
         <button
-          onClick={() => alert('나의 팀 정보 확인')}
+          onClick={() => setIsTeamModalOpen(true)}
           className="w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center text-blue-600 hover:bg-blue-50 active:scale-95 transition-all border border-gray-100"
           aria-label="My Team"
         >
@@ -94,9 +110,43 @@ export default function HomePage() {
         {selectedMarker && (
           <selectedMarker.modalComponent
             {...selectedMarker.modalProps}
-            onClick={() => teamRegister(`${selectedMarker.title}`)}
+            onClick={() => hanldeTeamRegister(selectedMarker.title)}
           />
         )}
+      </Modal>
+
+      <Modal isOpen={isTeamModalOpen} onClose={() => setIsTeamModalOpen(false)}>
+        <div className="p-6 bg-white rounded-xl min-w-[280px] flex flex-col items-center gap-4">
+          <h2 className="text-xl font-bold text-gray-900">나의 팀 정보</h2>
+
+          {user?.team ? (
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-3xl">
+                🏰
+              </div>
+              <p className="text-gray-500 text-sm">현재 소속된 팀</p>
+              <p className="text-2xl font-extrabold text-blue-600">
+                {user.team}
+              </p>
+              <p className="text-xs text-gray-400 mt-1">
+                열심히 활동해서 점수를 모아보세요!
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-2 py-4">
+              <p className="text-gray-500">아직 소속된 팀이 없습니다.</p>
+              <p className="text-sm text-blue-500">
+                지도의 마커를 눌러 팀에 가입해보세요!
+              </p>
+            </div>
+          )}
+          <button
+            onClick={() => setIsTeamModalOpen(false)}
+            className="mt-2 w-full py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 font-medium transition-colors"
+          >
+            닫기
+          </button>
+        </div>
       </Modal>
     </div>
   )

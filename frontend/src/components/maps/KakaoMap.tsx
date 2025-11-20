@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import CurrentLocationMarker from './CurrentLocationMarker'
 import type { ReactNode } from 'react'
 import { useKakaoMap } from '@/hooks/useKakaoMap'
@@ -36,6 +37,16 @@ export default function KakaoMap(props: {
     longitude,
     level: props.level ?? 3,
   })
+
+  useEffect(() => {
+    if (props.useCurrentLocation && mapInstance && location) {
+      const moveLatLon = new window.kakao.maps.LatLng(
+        location.latitude,
+        location.longitude,
+      )
+      mapInstance.panTo(moveLatLon)
+    }
+  }, [mapInstance, location, props.useCurrentLocation])
 
   const className = props.className ?? 'w-full h-full'
 
@@ -92,7 +103,6 @@ export default function KakaoMap(props: {
       </div>
     )
   }
-  // components/maps/KakaoMap.tsx - return 부분만 수정
   return (
     <KakaoMapContext.Provider value={{ map: mapInstance, isLoaded }}>
       <div className={`relative ${className}`}>
@@ -104,14 +114,12 @@ export default function KakaoMap(props: {
         <div ref={mapRef} className="w-full h-full" />
         {isLoaded && (
           <>
-            {/* 현재 위치 마커 자동 표시 */}
             {props.useCurrentLocation && location && (
               <CurrentLocationMarker
                 latitude={location.latitude}
                 longitude={location.longitude}
               />
             )}
-            {/* 자식 컴포넌트 */}
             {props.children}
           </>
         )}
