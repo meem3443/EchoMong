@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"golang.org/x/crypto/bcrypt"
 
 	"backend/internal/repository/db"
@@ -88,4 +89,29 @@ func (s *UserService) generateJWT(email, username string) (string, error) {
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(os.Getenv("JWT_SECRET")))
+}
+
+func (s *UserService) JoinTeam(ctx context.Context, email string, teamTitle string) (int64, error) {
+
+	// 1. 팀 이름으로 ID 조회
+	teamID, err := s.queries.GetEchomongByTitle(ctx, pgtype.Text{String: teamTitle, Valid: true})
+	if err != nil {
+		if err.Error() == "no rows in result set" { // 혹은 sql.ErrNoRows 체크
+			return 0, &ServiceError{Code: 404, Message: "해당 이름의 팀을 찾을 수 없습니다."} // ★ 0 반환 추가
+		}
+		return 0, &ServiceError{Code: 500, Message: "서버 에러: " + err.Error()} // ★ 0 반환 추가
+	}
+
+	// 2. 유저 정보 업데이트
+	arg := db.UpdateUserTeamParams{
+		Team:  pgtype.Int8{Int64: teamID, Valid: true},
+		Email: email,
+	}
+
+	if err := s.queries.UpdateUserTeam(ctx, arg); err != nil {
+		return 0, &ServiceError{Code: 500, Message: "팀 가입 실패"} // ★ 0 반환 추가
+	}
+
+	// ★ 성공 시 teamID와 nil 반환
+	return teamID, nil
 }
