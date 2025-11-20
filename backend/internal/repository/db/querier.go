@@ -6,15 +6,19 @@ package db
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Querier interface {
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	// db/query/echomong.sql
 	GetEchomong(ctx context.Context, id int64) (Echomong, error)
+	GetEchomongByTitle(ctx context.Context, title pgtype.Text) (int64, error)
 	GetEchomongs(ctx context.Context) ([]Echomong, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByUsername(ctx context.Context, username string) (User, error)
+	UpdateUserTeam(ctx context.Context, arg UpdateUserTeamParams) error
 }
 
 var _ Querier = (*Queries)(nil)

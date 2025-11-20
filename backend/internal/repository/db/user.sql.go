@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createUser = `-- name: CreateUser :one
@@ -15,7 +17,7 @@ INSERT INTO users (
 ) VALUES (
   $1, $2, $3
 )
-RETURNING email, username, password_hash, created_at
+RETURNING email, username, password_hash, created_at, team
 `
 
 type CreateUserParams struct {
@@ -32,12 +34,13 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.Username,
 		&i.PasswordHash,
 		&i.CreatedAt,
+		&i.Team,
 	)
 	return i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT email, username, password_hash, created_at FROM users
+SELECT email, username, password_hash, created_at, team FROM users
 WHERE email = $1 LIMIT 1
 `
 
@@ -49,12 +52,13 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.Username,
 		&i.PasswordHash,
 		&i.CreatedAt,
+		&i.Team,
 	)
 	return i, err
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT email, username, password_hash, created_at FROM users
+SELECT email, username, password_hash, created_at, team FROM users
 WHERE username = $1 LIMIT 1
 `
 
@@ -66,6 +70,23 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User,
 		&i.Username,
 		&i.PasswordHash,
 		&i.CreatedAt,
+		&i.Team,
 	)
 	return i, err
+}
+
+const updateUserTeam = `-- name: UpdateUserTeam :exec
+UPDATE users
+SET team = $1
+WHERE email = $2
+`
+
+type UpdateUserTeamParams struct {
+	Team  pgtype.Int8 `json:"team"`
+	Email string      `json:"email"`
+}
+
+func (q *Queries) UpdateUserTeam(ctx context.Context, arg UpdateUserTeamParams) error {
+	_, err := q.db.Exec(ctx, updateUserTeam, arg.Team, arg.Email)
+	return err
 }

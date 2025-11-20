@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const getEchomong = `-- name: GetEchomong :one
@@ -25,6 +27,17 @@ func (q *Queries) GetEchomong(ctx context.Context, id int64) (Echomong, error) {
 		&i.ImgUrl,
 	)
 	return i, err
+}
+
+const getEchomongByTitle = `-- name: GetEchomongByTitle :one
+SELECT id FROM echomong WHERE title = $1 LIMIT 1
+`
+
+func (q *Queries) GetEchomongByTitle(ctx context.Context, title pgtype.Text) (int64, error) {
+	row := q.db.QueryRow(ctx, getEchomongByTitle, title)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
 }
 
 const getEchomongs = `-- name: GetEchomongs :many

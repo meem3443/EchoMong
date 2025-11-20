@@ -66,11 +66,19 @@ type User struct {
 	Username *string `json:"username,omitempty"`
 }
 
+// JoinTeamJSONBody defines parameters for JoinTeam.
+type JoinTeamJSONBody struct {
+	Title string `json:"title"`
+}
+
 // LoginUserJSONRequestBody defines body for LoginUser for application/json ContentType.
 type LoginUserJSONRequestBody = LoginRequest
 
 // RegisterUserJSONRequestBody defines body for RegisterUser for application/json ContentType.
 type RegisterUserJSONRequestBody = RegisterRequest
+
+// JoinTeamJSONRequestBody defines body for JoinTeam for application/json ContentType.
+type JoinTeamJSONRequestBody JoinTeamJSONBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -83,6 +91,9 @@ type ServerInterface interface {
 	// 회원가입
 	// (POST /register)
 	RegisterUser(c *gin.Context)
+	// 팀 이름으로 팀 가입하기
+	// (POST /user/team)
+	JoinTeam(c *gin.Context)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -146,6 +157,19 @@ func (siw *ServerInterfaceWrapper) RegisterUser(c *gin.Context) {
 	siw.Handler.RegisterUser(c)
 }
 
+// JoinTeam operation middleware
+func (siw *ServerInterfaceWrapper) JoinTeam(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.JoinTeam(c)
+}
+
 // GinServerOptions provides options for the Gin server.
 type GinServerOptions struct {
 	BaseURL      string
@@ -176,6 +200,7 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.GET(options.BaseURL+"/echomong/:id", wrapper.GetEchomong)
 	router.POST(options.BaseURL+"/login", wrapper.LoginUser)
 	router.POST(options.BaseURL+"/register", wrapper.RegisterUser)
+	router.POST(options.BaseURL+"/user/team", wrapper.JoinTeam)
 }
 
 type GetEchomongRequestObject struct {
@@ -283,6 +308,44 @@ func (response RegisterUser500JSONResponse) VisitRegisterUserResponse(w http.Res
 	return json.NewEncoder(w).Encode(response)
 }
 
+type JoinTeamRequestObject struct {
+	Body *JoinTeamJSONRequestBody
+}
+
+type JoinTeamResponseObject interface {
+	VisitJoinTeamResponse(w http.ResponseWriter) error
+}
+
+type JoinTeam200JSONResponse struct {
+	Message *string `json:"message,omitempty"`
+	TeamId  *int    `json:"team_id,omitempty"`
+}
+
+func (response JoinTeam200JSONResponse) VisitJoinTeamResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type JoinTeam404JSONResponse ErrorResponse
+
+func (response JoinTeam404JSONResponse) VisitJoinTeamResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type JoinTeam500JSONResponse ErrorResponse
+
+func (response JoinTeam500JSONResponse) VisitJoinTeamResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// Echomong 1개 조회
@@ -294,6 +357,9 @@ type StrictServerInterface interface {
 	// 회원가입
 	// (POST /register)
 	RegisterUser(ctx context.Context, request RegisterUserRequestObject) (RegisterUserResponseObject, error)
+	// 팀 이름으로 팀 가입하기
+	// (POST /user/team)
+	JoinTeam(ctx context.Context, request JoinTeamRequestObject) (JoinTeamResponseObject, error)
 }
 
 type StrictHandlerFunc = strictgin.StrictGinHandlerFunc
@@ -401,24 +467,59 @@ func (sh *strictHandler) RegisterUser(ctx *gin.Context) {
 	}
 }
 
+// JoinTeam operation middleware
+func (sh *strictHandler) JoinTeam(ctx *gin.Context) {
+	var request JoinTeamRequestObject
+
+	var body JoinTeamJSONRequestBody
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		ctx.Status(http.StatusBadRequest)
+		ctx.Error(err)
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.JoinTeam(ctx, request.(JoinTeamRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "JoinTeam")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		ctx.Error(err)
+		ctx.Status(http.StatusInternalServerError)
+	} else if validResponse, ok := response.(JoinTeamResponseObject); ok {
+		if err := validResponse.VisitJoinTeamResponse(ctx.Writer); err != nil {
+			ctx.Error(err)
+		}
+	} else if response != nil {
+		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/8xWXW8bRRT9K6OBh1Za2Q4pSOxbKxVU1AcUQDxEEdru3qyneGe2M7Mgy1opFLcCmgcj",
-	"LNUy3kCl8NGqSG6TgCU+fpB3/B/QzDj2OtngIJyIl2izc+fec88996xb2GdRzChQKbDbwsKvQ+SZx5t+",
-	"nUWMhvo55iwGLgmYExLov7IZA3YxoRJC4Dh1MInCjxLe0IfbjEeexC5OOMHOcayQnNBQhzaanPiikGZ+",
-	"JIlsQMlJOkvD7twFX+rYm5wzvgEiZlTAaaA+C8zbAITPSSwJo9jF6nEn/+45Un92828G6Aoz773G1TnO",
-	"Qk+gK5yZI3/aVY8G6qed0z2mDuZwLyEcAuxuTvNslfRwm4WEbsC9BIQ83QJEHmmU8hR7QnzKeFBO1UJt",
-	"k6Nw4x9gnEWlZB8DXV7KhpXl34CQCAn8P3YaEXobaCjr2H2jRFeJAE69CE6ErjvnpGh2fwlbHwjg/6aF",
-	"Iq6luk4dLMBPOJHN9/Q+2uQ3wOPArye6nxa+Y/5763jN3vnwfezY7dWZ7OlclHUpY5zqxIRuMwPCbtls",
-	"y9H1d29hB38CXFiFr1VqlZqGzmKgXkywi9crtcq6YUbWDaQqTG9XWyRI9ZsQzGQ1KZ5elVsBdvHbIGdm",
-	"om9zLwIJXGB3s4WJLqYzYgdbhrS/FKcjeQLT3rwy40m3dLQVroH1Wq1mt59KoAaPF8cN4htE1buC0bnV",
-	"6adXOWxjF79SnXthdWqE1Rlww94JE2i/GB8caY6u1a6truKCp5WVHf6lsjZSX/SQevxQZbsLijGkFrWy",
-	"uaUJEkkUebxZnPjaeDhA6slw0rcZqg1tAUbVTJSM0TiEEb6dDgh5gwXNlTW+YITp4oZqDaQXOOZF9ysh",
-	"PX8yGP82UtkI2amjK5OH308+G6J8OBiPvrxqVbB2iSrIRurHDKlH+5Pdn3X111ep+qXV24P8ZRvl9w/z",
-	"X3eQ6u3nP/SsDGc6mzFmxcWn/n+2vo6/EBcosZMfoXOpbHVDNZ2Vsfl5ptovUNFPLnOWe7382e95Z4BU",
-	"v6te/mIBvHmJAPa/zg+ODIDsUP+kyv5Aea+Tf9VF6v5z1X+q9jr5swf/R5FP+rvq2854uKP2HugU6d8B",
-	"AAD//530EpxRCwAA",
+	"H4sIAAAAAAAC/8xXUW8bRRD+K6uFh1ayYocUJO6tlQpq1QcUiniIoup6nly2+Havu3sgyzrJFLcC4gcj",
+	"UtUK50CkUGhVJLdNwYjCD/Lt/Qe0u47ts8+kgJv2xTrfzs588803s3sN7LEgZBSoFNhpYOFtQ+Cax4ve",
+	"NgsY9fVzyFkIXBIwK6Sqf2U9BOxgQiX4wHFcwiTwr0W8phe3GA9ciR0ccYJLx7ZCckJ9bVqrc+KJKTeT",
+	"JUlkDQpW4rEbdv0GeFLbXuSc8XUQIaMC5oF6rGreVkF4nISSMIodrO510u8fIfXnbvptgs4w896tnZ3g",
+	"nMoJdISFPtIHu2onUT8153OMS5jDzYhwqGJnY+RnsyCHK8wndB1uRiDkfAoQuKRWyFPoCvEZ49ViqnKx",
+	"jY+pHf8AYxGVkn0C9ORQ1qzI/zr4REjg/zPTgNArQH25jZ13CnQVCeDUDWDGdK30ghSN95/A1kcC+L9J",
+	"YRrXibqOS1iAF3Ei6x/qfrTOL4DLgZ+PdD4NfN38e++4zS5/fBWXbPdqT3Z1IsptKUMca8eEbjEDwnbZ",
+	"uMvR+Q8u4RL+FLiwCl9dqaxUNHQWAnVDgh28tlJZWTPMyG0DqQyj3eUGqcb6jQ+mspoUV7fKpSp28Psg",
+	"x8NE7+ZuABK4wM5GAxMdTHvEJWwZ0vNlujqSRzDKzS0aPPGmtrbCNbDeqlRs91MJ1OBxw7BGPIOofEMw",
+	"Ohl1+ulNDlvYwW+UJ7OwPBqE5TFww97MEGg9Hj59pjk6Vzm3vIi5mVYUtv+X6rWQ+rKL1L07qtfOKcaQ",
+	"Oq2VjU1NkIiCwOX16YqvDvsJUgf9bM96KNf0CDCqZqKgjGZCGOHb6oCQF1i1vrTEc4Mwzneo1kD8Esuc",
+	"n34FpKcHyfC3geoNkK06OpPd+SH7vI/SfjIcfHXWqmD1FFXQG6j7PaR2DrP2zzr628tU/YnRW0n6pIXS",
+	"W0fpr02kuofpj10rw7HOxoxZcfHR/F+sr+MT4iVKbPYQeiGVLa+oJrMiNr/oqdZjND1PTrOW+9304R9p",
+	"J0Fqb1c9+cUCePcUARx+kz59ZgD0jvSVqvccpd1O+vUuUrceqb0Har+TPrz9Ooo822ur7zrDflPt37Y6",
+	"1yd9WYIbLBb6ZUboVW3x30U+czlbfGXOXc6M2fx1ZvmjNg8vACFcH4pv++AG14o/KOJCoPkSZe0msuyj",
+	"V3QaZ3eP0p3fUdZumkN5/mx+NaK1Hyizam03TYvdb6nkeXqQoAl92d3ucNDXDuO/AwAA//9uT2hnFA4A",
+	"AA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

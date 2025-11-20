@@ -20,4 +20,5 @@ type User struct {
 	Username     string             `json:"username"`
 	PasswordHash string             `json:"password_hash"`
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	Team         pgtype.Int8        `json:"team"`
 }
