@@ -15,6 +15,13 @@ type Echomong struct {
 	ImgUrl pgtype.Text `json:"img_url"`
 }
 
+type Marker struct {
+	ID         int64   `json:"id"`
+	Latitude   float64 `json:"latitude"`
+	Longitude  float64 `json:"longitude"`
+	EchomongID int64   `json:"echomong_id"`
+}
+
 type User struct {
 	Email        string             `json:"email"`
 	Username     string             `json:"username"`

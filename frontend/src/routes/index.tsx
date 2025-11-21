@@ -3,4 +3,7 @@ import { AuthPage } from '@/pages/AuthPage'
 
 export const Route = createFileRoute('/')({
   component: AuthPage,
+  staticData: {
+    hideNavbar: true,
+  },
 })

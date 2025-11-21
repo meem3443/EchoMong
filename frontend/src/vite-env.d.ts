@@ -1,5 +1,3 @@
-/// <reference types="vite/client" />
-
 interface ImportMeta {
   readonly env: ImportMetaEnv
 }
@@ -9,5 +7,3 @@ declare global {
     kakao: any
   }
 }
-
-export {}
