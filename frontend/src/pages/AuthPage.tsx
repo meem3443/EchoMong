@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from '@tanstack/react-router'
 
+import toast from 'react-hot-toast'
 import type { AuthInput } from '@/schemas/auth'
 import { authSchema, loginSchema } from '@/schemas/auth'
 import { loginUser, registerUser, setAuthToken } from '@/api/auth'
@@ -44,10 +45,10 @@ export function AuthPage() {
         })
         setAuthToken(response.token)
         login({ token: response.token, username: data.username })
-        alert('로그인에 성공했습니다!')
+        toast.success('로그인에 성공했습니다!')
       } else {
         await registerUser(data)
-        alert('회원가입에 성공했습니다! 자동으로 로그인합니다.')
+        toast.success('회원가입에 성공했습니다! 자동으로 로그인합니다.')
 
         const response = await loginUser({
           email: data.email,
@@ -66,22 +67,22 @@ export function AuthPage() {
 
   return (
     <div
-      className="w-full h-full flex items-center justify-center"
+      className="w-full h-full flex items-center justify-center bg-gray-900"
       key={isLoginMode ? 'login' : 'register'}
     >
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className="flex flex-col p-6 w-full max-w-sm border shadow-lg rounded-lg space-y-4 bg-gray-50"
+        className="flex flex-col p-6 w-full max-w-sm border border-gray-700 shadow-lg rounded-lg space-y-4 bg-gray-800 h-full"
       >
-        <h2 className="text-2xl font-bold text-center text-black">
+        <h2 className="text-2xl font-bold text-center text-white">
           {isLoginMode ? '로그인' : '회원가입'}
         </h2>
-
+        {/* need to add logo some what*/}
         {!isLoginMode && (
           <div className="flex flex-col">
             <label
               htmlFor="username"
-              className="mb-1 text-sm font-medium text-black"
+              className="mb-1 text-sm font-medium text-white"
             >
               사용자 이름
             </label>
@@ -90,7 +91,7 @@ export function AuthPage() {
               type="text"
               {...register('username')}
               placeholder="사용자 이름을 입력하세요"
-              className="border p-2 rounded focus:ring-blue-500 focus:border-blue-500 text-black"
+              className="border border-gray-600 bg-gray-700 p-2 rounded focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400"
             />
             {errors.username && (
               <p className="text-red-500 text-sm mt-1">
@@ -103,7 +104,7 @@ export function AuthPage() {
         <div className="flex flex-col">
           <label
             htmlFor="email"
-            className="mb-1 text-sm font-medium text-black"
+            className="mb-1 text-sm font-medium text-white"
           >
             이메일
           </label>
@@ -112,7 +113,7 @@ export function AuthPage() {
             type="email"
             {...register('email')}
             placeholder="이메일을 입력하세요"
-            className="border p-2 rounded focus:ring-blue-500 focus:border-blue-500 text-black"
+            className="border border-gray-600 bg-gray-700 p-2 rounded focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400"
           />
           {errors.email && (
             <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
@@ -122,7 +123,7 @@ export function AuthPage() {
         <div className="flex flex-col">
           <label
             htmlFor="password"
-            className="mb-1 text-sm font-medium text-black"
+            className="mb-1 text-sm font-medium text-white"
           >
             비밀번호
           </label>
@@ -131,7 +132,7 @@ export function AuthPage() {
             type="password"
             {...register('password')}
             placeholder="비밀번호를 입력하세요"
-            className="border p-2 rounded focus:ring-blue-500 focus:border-blue-500 text-black"
+            className="border border-gray-600 bg-gray-700 p-2 rounded focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400"
           />
           {errors.password && (
             <p className="text-red-500 text-sm mt-1">
@@ -144,7 +145,7 @@ export function AuthPage() {
           <div className="flex flex-col">
             <label
               htmlFor="confirmPassword"
-              className="mb-1 text-sm font-medium text-black"
+              className="mb-1 text-sm font-medium text-white"
             >
               비밀번호 확인
             </label>
@@ -153,7 +154,7 @@ export function AuthPage() {
               type="password"
               {...register('confirmPassword')}
               placeholder="비밀번호를 다시 입력하세요"
-              className="border p-2 rounded focus:ring-blue-500 focus:border-blue-500 text-black"
+              className="border border-gray-600 bg-gray-700 p-2 rounded focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400"
             />
             {errors.confirmPassword && (
               <p className="text-red-500 text-sm mt-1">
@@ -177,12 +178,12 @@ export function AuthPage() {
           {isSubmitting ? '처리 중...' : isLoginMode ? '로그인' : '회원가입'}
         </button>
 
-        <p className="text-center text-sm text-gray-600">
+        <p className="text-center text-sm text-gray-400">
           {isLoginMode ? '계정이 없으신가요?' : '이미 계정이 있으신가요?'}
           <button
             type="button"
             onClick={() => setIsLoginMode(!isLoginMode)}
-            className="font-semibold text-blue-600 hover:text-blue-800 ml-2"
+            className="font-semibold text-blue-400 hover:text-blue-300 ml-2"
           >
             {isLoginMode ? '회원가입' : '로그인'}
           </button>

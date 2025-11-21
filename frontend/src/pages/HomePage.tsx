@@ -28,7 +28,7 @@ export default function HomePage() {
     setSelectedMarker(marker)
   }
 
-  const hanldeTeamRegister = async (teamName: string) => {
+  const hanldeTeamRegister = (teamName: string) => {
     setUserTeam(teamName)
       .then(() => {
         teamRegister(teamName)
