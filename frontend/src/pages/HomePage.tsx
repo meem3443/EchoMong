@@ -1,6 +1,7 @@
 import { useNavigate } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
+import type { ChangeEvent } from 'react'
 import type { MarkerData } from '@/mocks/mocks'
 import KakaoMap from '@/components/maps/KakaoMap'
 import CustomMarker from '@/components/maps/CustomMarker'
@@ -11,17 +12,34 @@ import useAuthStore from '@/stores/useAuthStore'
 import { setUserTeam } from '@/api/auth'
 
 export default function HomePage() {
-  const naviagte = useNavigate()
-
+  const navigate = useNavigate()
   const [selectedMarker, setSelectedMarker] = useState<MarkerData | null>(null)
-
   const [isTeamModalOpen, setIsTeamModalOpen] = useState(false)
+  const [isMissionModalOpen, setIsMissionModalOpen] = useState(false)
 
-  const { teamRegister, isLoggedIn, logout, user } = useAuthStore()
+  const [activeMissionType, setActiveMissionType] = useState<
+    'photo' | 'recycle' | null
+  >(null)
+
+  const [completedMissions, setCompletedMissions] = useState({
+    photo: false,
+    recycle: false,
+    instagram: false,
+  })
+
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const { teamRegister, isLoggedIn, logout } = useAuthStore()
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      logout()
+      navigate({ to: '/' })
+    }
+  }, [isLoggedIn, logout, navigate])
 
   if (!isLoggedIn) {
-    logout()
-    naviagte({ to: '/' })
+    return null
   }
 
   const handleMarkerClick = (marker: MarkerData) => {
@@ -42,8 +60,67 @@ export default function HomePage() {
     setSelectedMarker(null)
   }
 
+  const handleImageMissionClick = (type: 'photo' | 'recycle') => {
+    setActiveMissionType(type)
+    fileInputRef.current?.click()
+  }
+
+  const onFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (activeMissionType === 'photo') {
+      toast.success('📸 사진 미션 완료! (' + file.name + ')')
+      setCompletedMissions((prev) => ({ ...prev, photo: true }))
+    } else if (activeMissionType === 'recycle') {
+      toast.success('♻️ 재활용 인증 완료! (' + file.name + ')')
+      setCompletedMissions((prev) => ({ ...prev, recycle: true }))
+    }
+
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const handleInstagramClick = () => {
+    setCompletedMissions((prev) => ({ ...prev, instagram: true }))
+
+    const userAgent = navigator.userAgent.toLowerCase()
+    const isAndroid = userAgent.indexOf('android') > -1
+    const isIOS =
+      userAgent.indexOf('iphone') > -1 || userAgent.indexOf('ipad') > -1
+
+    if (isAndroid || isIOS) {
+      const visitedAt = new Date().getTime()
+      window.location.href = 'instagram://story-camera'
+
+      setTimeout(() => {
+        if (new Date().getTime() - visitedAt < 2000) {
+          window.location.href = 'https://www.instagram.com/'
+        }
+      }, 1500)
+    } else {
+      window.open('https://www.instagram.com/', '_blank')
+      toast('PC에서는 인스타그램 웹으로 이동합니다.')
+    }
+  }
+
+  const getMissionButtonStyle = (isCompleted: boolean) => {
+    return `rounded-2xl w-20 h-20 flex flex-col items-center justify-center gap-1 p-2 cursor-pointer transition-all duration-300 ${
+      isCompleted
+        ? 'bg-blue-600 hover:bg-blue-700 shadow-md scale-105' // 완료 시: 파란색 + 강조
+        : 'bg-gray-400 hover:bg-gray-800' // 미완료 시: 회색
+    }`
+  }
+
   return (
     <div className="relative w-full h-full">
+      <input
+        type="file"
+        ref={fileInputRef}
+        className="hidden"
+        accept="image/*"
+        onChange={onFileChange}
+      />
+
       <KakaoMap
         level={3}
         latitude={markers[0]?.lat}
@@ -66,43 +143,15 @@ export default function HomePage() {
         <button
           onClick={() => setIsTeamModalOpen(true)}
           className="w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center text-blue-600 hover:bg-blue-50 active:scale-95 transition-all border border-gray-100"
-          aria-label="My Team"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={1.5}
-            stroke="currentColor"
-            className="w-6 h-6"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 5.472m0 0a9.09 9.09 0 0 0-3.279 1.304 1.115 1.115 0 0 1 1.466-1.638c.466.326.997.6 1.55.8m6-17c2.21 0 4 1.79 4 4s-1.79 4-4 4-4-1.79-4-4 1.79-4 4-4Z"
-            />
-          </svg>
+          <span className="text-xl">🏰</span>
         </button>
 
         <button
-          onClick={() => alert('오늘의 미션 확인')}
+          onClick={() => setIsMissionModalOpen(true)}
           className="w-12 h-12 bg-blue-500 rounded-full shadow-lg flex items-center justify-center text-white hover:bg-blue-600 active:scale-95 transition-all shadow-blue-200"
-          aria-label="Missions"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={1.5}
-            stroke="currentColor"
-            className="w-6 h-6"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12h.008v.008H6.75V12Zm0 3h.008v.008H6.75V15Zm0 3h.008v.008H6.75V18Z"
-            />
-          </svg>
+          <span className="text-xl">🎯</span>
         </button>
       </div>
 
@@ -118,34 +167,60 @@ export default function HomePage() {
       <Modal isOpen={isTeamModalOpen} onClose={() => setIsTeamModalOpen(false)}>
         <div className="p-6 bg-white rounded-xl min-w-[280px] flex flex-col items-center gap-4">
           <h2 className="text-xl font-bold text-gray-900">나의 팀 정보</h2>
+          <button onClick={() => setIsTeamModalOpen(false)}>닫기</button>
+        </div>
+      </Modal>
 
-          {user?.team ? (
-            <div className="flex flex-col items-center gap-2">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-3xl">
-                🏰
-              </div>
-              <p className="text-gray-500 text-sm">현재 소속된 팀</p>
-              <p className="text-2xl font-extrabold text-blue-600">
-                {user.team}
-              </p>
-              <p className="text-xs text-gray-400 mt-1">
-                열심히 활동해서 점수를 모아보세요!
-              </p>
+      <Modal
+        isOpen={isMissionModalOpen}
+        onClose={() => setIsMissionModalOpen(false)}
+      >
+        <div className="p-6 bg-white rounded-xl min-w-[280px] flex flex-col">
+          <h2 className="text-xl font-bold text-gray-900">미션 수행하기</h2>
+
+          <div className="flex w-full gap-2 items-center justify-center mx-auto mt-4">
+            <div
+              onClick={() => handleImageMissionClick('photo')}
+              className={getMissionButtonStyle(completedMissions.photo)}
+            >
+              <span className="text-white text-[10px] font-bold text-center break-keep">
+                {completedMissions.photo ? '완료됨' : '사진 찍기'}
+              </span>
+              <img
+                className="w-10 h-10 object-contain"
+                src={'festival_1.png'}
+                alt="camera"
+              />
             </div>
-          ) : (
-            <div className="flex flex-col items-center gap-2 py-4">
-              <p className="text-gray-500">아직 소속된 팀이 없습니다.</p>
-              <p className="text-sm text-blue-500">
-                지도의 마커를 눌러 팀에 가입해보세요!
-              </p>
+
+            <div
+              onClick={() => handleImageMissionClick('recycle')}
+              className={getMissionButtonStyle(completedMissions.recycle)}
+            >
+              <span className="text-white text-[10px] font-bold text-center break-keep">
+                {completedMissions.recycle ? '완료됨' : '재활용 인증'}
+              </span>
+              <img
+                className="w-10 h-10 object-contain"
+                src={'festival_2.png'}
+                alt="festival"
+              />
             </div>
-          )}
-          <button
-            onClick={() => setIsTeamModalOpen(false)}
-            className="mt-2 w-full py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 font-medium transition-colors"
-          >
-            닫기
-          </button>
+
+            <div
+              onClick={handleInstagramClick}
+              className={getMissionButtonStyle(completedMissions.instagram)}
+            >
+              <span className="text-white text-[10px] font-bold text-center break-keep">
+                {completedMissions.instagram ? '완료됨' : '공유하기'}
+              </span>
+              <img
+                className="w-10 h-10 object-contain"
+                src={'instagram_logo.png'}
+                alt="instagram"
+              />
+            </div>
+          </div>
         </div>
       </Modal>
     </div>
