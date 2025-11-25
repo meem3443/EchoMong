@@ -29,7 +29,7 @@ export default function HomePage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const { teamRegister, isLoggedIn, logout } = useAuthStore()
+  const { teamRegister, isLoggedIn, logout, user } = useAuthStore()
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -46,6 +46,7 @@ export default function HomePage() {
     setSelectedMarker(marker)
   }
 
+  // ✅ [복구 완료] 삭제되었던 hanldeTeamRegister 함수를 원상복구했습니다.
   const hanldeTeamRegister = (teamName: string) => {
     setUserTeam(teamName)
       .then(() => {
@@ -103,11 +104,21 @@ export default function HomePage() {
     }
   }
 
+  const handleGoToInfo = (id?: number) => {
+    navigate({ to: `/booth` })
+    closeModal()
+  }
+
+  const handleGoToQuiz = (id?: number) => {
+    navigate({ to: `/quiz` })
+    closeModal()
+  }
+
   const getMissionButtonStyle = (isCompleted: boolean) => {
     return `rounded-2xl w-20 h-20 flex flex-col items-center justify-center gap-1 p-2 cursor-pointer transition-all duration-300 ${
       isCompleted
-        ? 'bg-blue-600 hover:bg-blue-700 shadow-md scale-105' // 완료 시: 파란색 + 강조
-        : 'bg-gray-400 hover:bg-gray-800' // 미완료 시: 회색
+        ? 'bg-blue-600 hover:bg-blue-700 shadow-md scale-105'
+        : 'bg-gray-400 hover:bg-gray-800'
     }`
   }
 
@@ -159,7 +170,11 @@ export default function HomePage() {
         {selectedMarker && (
           <selectedMarker.modalComponent
             {...selectedMarker.modalProps}
+            // ✅ 기존: 팀 등록을 위한 onClick 복구
             onClick={() => hanldeTeamRegister(selectedMarker.title)}
+            // ✅ 추가: 부스 정보/퀴즈 이동을 위한 onClick1, onClick2 전달
+            onClick1={() => handleGoToInfo(selectedMarker.id)}
+            onClick2={() => handleGoToQuiz(selectedMarker.id)}
           />
         )}
       </Modal>
@@ -167,7 +182,34 @@ export default function HomePage() {
       <Modal isOpen={isTeamModalOpen} onClose={() => setIsTeamModalOpen(false)}>
         <div className="p-6 bg-white rounded-xl min-w-[280px] flex flex-col items-center gap-4">
           <h2 className="text-xl font-bold text-gray-900">나의 팀 정보</h2>
-          <button onClick={() => setIsTeamModalOpen(false)}>닫기</button>
+
+          {user?.team ? (
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-3xl">
+                🏰
+              </div>
+              <p className="text-gray-500 text-sm">현재 소속된 팀</p>
+              <p className="text-2xl font-extrabold text-blue-600">
+                {user.team}
+              </p>
+              <p className="text-xs text-gray-400 mt-1">
+                열심히 활동해서 점수를 모아보세요!
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-2 py-4">
+              <p className="text-gray-500">아직 소속된 팀이 없습니다.</p>
+              <p className="text-sm text-blue-500">
+                지도의 마커를 눌러 팀에 가입해보세요!
+              </p>
+            </div>
+          )}
+          <button
+            onClick={() => setIsTeamModalOpen(false)}
+            className="mt-2 w-full py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 font-medium transition-colors"
+          >
+            닫기
+          </button>
         </div>
       </Modal>
 

@@ -77,7 +77,7 @@ export function AuthPage() {
         <h2 className="text-2xl font-bold text-center text-white">
           {isLoginMode ? '로그인' : '회원가입'}
         </h2>
-        {/* need to add logo some what*/}
+        {/* TODO : need to add logo some what*/}
         {!isLoginMode && (
           <div className="flex flex-col">
             <label
