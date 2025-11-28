@@ -1,6 +1,6 @@
 import { useRouter } from '@tanstack/react-router'
 
-export default function TopNav(props: { title: string }) {
+export default function TopNav(props: { title?: string }) {
   const router = useRouter()
 
   const handleGoBack = () => {

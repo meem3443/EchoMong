@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as RewardRouteImport } from './routes/reward'
 import { Route as QuizRouteImport } from './routes/quiz'
 import { Route as HomeRouteImport } from './routes/home'
+import { Route as DicRouteImport } from './routes/dic'
 import { Route as BoothRouteImport } from './routes/booth'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -30,6 +31,11 @@ const HomeRoute = HomeRouteImport.update({
   path: '/home',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DicRoute = DicRouteImport.update({
+  id: '/dic',
+  path: '/dic',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BoothRoute = BoothRouteImport.update({
   id: '/booth',
   path: '/booth',
@@ -44,6 +50,7 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/booth': typeof BoothRoute
+  '/dic': typeof DicRoute
   '/home': typeof HomeRoute
   '/quiz': typeof QuizRoute
   '/reward': typeof RewardRoute
@@ -51,6 +58,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/booth': typeof BoothRoute
+  '/dic': typeof DicRoute
   '/home': typeof HomeRoute
   '/quiz': typeof QuizRoute
   '/reward': typeof RewardRoute
@@ -59,21 +67,23 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/booth': typeof BoothRoute
+  '/dic': typeof DicRoute
   '/home': typeof HomeRoute
   '/quiz': typeof QuizRoute
   '/reward': typeof RewardRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/booth' | '/home' | '/quiz' | '/reward'
+  fullPaths: '/' | '/booth' | '/dic' | '/home' | '/quiz' | '/reward'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/booth' | '/home' | '/quiz' | '/reward'
-  id: '__root__' | '/' | '/booth' | '/home' | '/quiz' | '/reward'
+  to: '/' | '/booth' | '/dic' | '/home' | '/quiz' | '/reward'
+  id: '__root__' | '/' | '/booth' | '/dic' | '/home' | '/quiz' | '/reward'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BoothRoute: typeof BoothRoute
+  DicRoute: typeof DicRoute
   HomeRoute: typeof HomeRoute
   QuizRoute: typeof QuizRoute
   RewardRoute: typeof RewardRoute
@@ -102,6 +112,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HomeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dic': {
+      id: '/dic'
+      path: '/dic'
+      fullPath: '/dic'
+      preLoaderRoute: typeof DicRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/booth': {
       id: '/booth'
       path: '/booth'
@@ -122,6 +139,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BoothRoute: BoothRoute,
+  DicRoute: DicRoute,
   HomeRoute: HomeRoute,
   QuizRoute: QuizRoute,
   RewardRoute: RewardRoute,
